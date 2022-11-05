@@ -27,7 +27,7 @@ class SpamGuard(commands.Cog):
         if len(m) >= 3:
             logging.debug(f"MATCH: {m}")
             logging.warn(
-                f"Deleting possible spam <{msg.author.display_name}>: {msg.content}"
+                f"Deleting possible spam <{msg.author.display_name}> ({msg.channel.name}): {msg.content}"
             )
             await msg.channel.send(f"/delete {msg.id}")
 
