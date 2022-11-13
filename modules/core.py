@@ -30,7 +30,10 @@ class CoreModule(commands.Cog):
         if not ctx.author.name == self.bot.nick:
             return
         with open("config.json", "w") as f:
-            json.dump(configuration["OPTIONS"], f)
+            channels = self.bot.connected_channels
+            configuration["OPTIONS"]["channels"] = [c.name for c in channels]
+            json.dump(configuration["OPTIONS"], f,indent='\t')
+            logging.info('Settings saved to config.json')
 
 
 def prepare(bot: commands.Bot):
