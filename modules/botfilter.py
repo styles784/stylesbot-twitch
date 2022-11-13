@@ -20,7 +20,7 @@ class BotFilter(commands.Cog):
     async def event_join(self, channel, user):
         if channel.name not in configuration["OPTIONS"]["enabled"]:
             return
-        logging.debug(f"Checking bot list for {user.name}")
+        logging.debug(f"{user.name} spotted in {channel.name}")
         await self.check_user(user.name, channel)
 
     @commands.Cog.event("event_channel_joined")

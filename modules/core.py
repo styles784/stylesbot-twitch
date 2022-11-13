@@ -32,8 +32,8 @@ class CoreModule(commands.Cog):
         with open("config.json", "w") as f:
             channels = self.bot.connected_channels
             configuration["OPTIONS"]["channels"] = [c.name for c in channels]
-            json.dump(configuration["OPTIONS"], f,indent='\t')
-            logging.info('Settings saved to config.json')
+            json.dump(configuration["OPTIONS"], f, indent="\t")
+            logging.info("Settings saved to config.json")
 
 
 def prepare(bot: commands.Bot):
