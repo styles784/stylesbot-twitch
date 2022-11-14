@@ -1,7 +1,7 @@
 import logging
 import logging.config
-import json
 from twitchio.ext import commands
+import config
 from config import configuration
 
 logging.config.dictConfig(configuration["LOGGING"])
@@ -16,10 +16,9 @@ class StylesBot(commands.Bot):
             initial_channels=configuration["OPTIONS"]["channels"],
         )
 
-        # logging.debug("Preparing to grab bot list from TwitchInsights.net...")
-        # logging.debug("Grabbing bot list...")
-
     async def event_ready(self):
+        if self.nick not in [c.name for c in self.connected_channels]:
+            await self.join_channels([self.nick])
         logging.info(f"Logged in as | {self.nick}")
 
     @commands.command(name="load")
@@ -67,6 +66,22 @@ class StylesBot(commands.Bot):
             )
 
     @commands.command()
+    async def lsmod(self, ctx: commands.Context):
+        if ctx.author.is_mod or ctx.author.name == self.nick:
+            logging.debug(f"Modules: {[m for m in self.cogs.keys()]}")
+            await ctx.send(f"Modules: {self.cogs.keys()}")
+
+    @commands.command()
+    async def save(self, ctx: commands.Context) -> None:
+        if not ctx.author.name == self.nick:
+            return
+        with open("config.json", "w") as f:
+            channels = [c.name for c in self.connected_channels]
+            modules = list(self.cogs.keys())
+            config.save(channels, modules)
+            logging.info("Settings saved to config.json")
+
+    @commands.command()
     async def quit(self, ctx: commands.Context):
         if ctx.author.name == ctx.channel.name:
             await self.part_channels(ctx.author.name)
@@ -79,7 +94,6 @@ class StylesBot(commands.Bot):
 if __name__ == "__main__":
 
     bot = StylesBot()
-    bot.load_module("modules.core")
     for m in configuration["OPTIONS"]["modules"]:
         bot.load_module(f"modules.{m}")
     try:
@@ -87,7 +101,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
-    with open("config.json", "w") as f:
-        json.dump(configuration["OPTIONS"], f)
+    channels: list[str] = [c.name for c in bot.connected_channels]
+    modules: list[str] = [m.lower().removesuffix("module") for m in bot.cogs.keys()]
+    config.save(channels, modules,)
 
     print("Bye!")
