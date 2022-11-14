@@ -15,6 +15,8 @@ class BotFilter(commands.Cog):
         self.botlist: BotList = BotList()
         self.seen: list[str] = []
         self.refresh_bots.start()
+        if "enabled" not in configuration["OPTIONS"].keys():
+            configuration["OPTIONS"]["enabled"] = []
 
     @commands.Cog.event()
     async def event_join(self, channel, user):
