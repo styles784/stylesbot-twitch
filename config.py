@@ -4,10 +4,38 @@
 import datetime
 import json
 
-from userconfig import configuration
 
-with open("config.json", "r") as f:
-    configuration["OPTIONS"] = json.load(f)
+def save(channels: list[str] = [], modules: list[str] = []):
+    with open("config.json", "w") as f:
+        configuration["OPTIONS"]["channels"] = channels
+        configuration["OPTIONS"]["modules"] = modules
+        export = configuration.copy()
+        export.pop("LOGGING", None)
+        json.dump(export, f, indent="\t")
+        # configuration["LOGGING"] = logconf
+        # logging.info("Settings saved to config.json")
+
+
+configuration: dict = {
+    "SECRET": {"oauth": "", "client_id": "", "client_secret": ""},
+    "OPTIONS": {"prefix": ["!"], "channels": [], "modules": []},
+}
+
+try:
+    with open("config.json", "r") as f:
+        overrides = json.load(f)
+        configuration.update(overrides)
+except FileNotFoundError:
+    with open("config.json", "w") as f:
+        # TODO: Interactive first-time setup
+        save()
+    exit(
+        code="Blank config.json generated - edit it to add your authorization \
+details and run script again"
+    )
+
+if configuration["SECRET"]["oauth"] == "":
+    exit(code="Please insert authorization details into config.json")
 
 configuration["LOGGING"] = {
     "version": 1,
