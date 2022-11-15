@@ -1,11 +1,9 @@
 import logging
 import logging.config
-import json
 
 # import twitchio
 from twitchio.ext import commands
 
-import config
 from config import configuration
 
 logging.config.dictConfig(configuration["LOGGING"])

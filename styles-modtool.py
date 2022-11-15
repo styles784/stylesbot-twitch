@@ -75,11 +75,11 @@ class StylesBot(commands.Bot):
     async def save(self, ctx: commands.Context) -> None:
         if not ctx.author.name == self.nick:
             return
-        with open("config.json", "w") as f:
-            channels = [c.name for c in self.connected_channels]
-            modules = list(self.cogs.keys())
-            config.save(channels, modules)
-            logging.info("Settings saved to config.json")
+
+        channels = [c.name for c in self.connected_channels]
+        modules = list(self.cogs.keys())
+        config.save(channels, modules)
+        logging.info("Settings saved to config.json")
 
     @commands.command()
     async def quit(self, ctx: commands.Context):
@@ -103,6 +103,9 @@ if __name__ == "__main__":
 
     channels: list[str] = [c.name for c in bot.connected_channels]
     modules: list[str] = [m.lower().removesuffix("module") for m in bot.cogs.keys()]
-    config.save(channels, modules,)
+    config.save(
+        channels,
+        modules,
+    )
 
     print("Bye!")
