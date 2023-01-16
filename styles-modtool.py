@@ -17,7 +17,7 @@ class StylesBot(commands.Bot):
         )
 
     async def event_ready(self):
-        if self.nick not in [c.name for c in self.connected_channels]:
+        if self.nick not in [c.name for c in self.connected_channels if c is not None]:
             await self.join_channels([self.nick])
         logging.info(f"Logged in as | {self.nick}")
 
@@ -82,13 +82,13 @@ class StylesBot(commands.Bot):
         logging.info("Settings saved to config.json")
 
     @commands.command()
-    async def quit(self, ctx: commands.Context):
-        if ctx.author.name == ctx.channel.name:
-            await self.part_channels(ctx.author.name)
-        elif ctx.author.name == self.nick:
+    async def quit(self, ctx: commands.Context) -> None:
+        if ctx.author.name == self.nick:
             logging.critical(f"ABORTING per {ctx.author.name}'s request!")
             await self.close()
             quit()
+        elif ctx.author.name == ctx.channel.name:
+            await self.part_channels(ctx.author.name)
 
 
 if __name__ == "__main__":
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
 
-    channels: list[str] = [c.name for c in bot.connected_channels]
+    channels: list[str] = [c.name for c in bot.connected_channels if c is not None]
     modules: list[str] = [m.lower().removesuffix("module") for m in bot.cogs.keys()]
     config.save(
         channels,
