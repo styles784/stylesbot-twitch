@@ -73,13 +73,15 @@ class BotFilter(commands.Cog):
     async def status(self, ctx: commands.Context) -> None:
         if not ctx.author.is_mod:
             return
-        await ctx.send(f'Filter enabled: {ctx.channel.name in configuration["OPTIONS"]["enabled"]}')
+        await ctx.send(
+            f'Filter enabled: {ctx.channel.name in configuration["OPTIONS"]["enabled"]}'
+        )
 
     @commands.command()
     async def permtest(self, ctx: commands.Context) -> None:
         if ctx.channel.name not in configuration["OPTIONS"]["enabled"]:
             return
-        await ctx.send(f'Permission has been granted in {ctx.channel.name}')
+        await ctx.send(f"Permission has been granted in {ctx.channel.name}")
 
     @commands.command(aliases=["unban"])
     async def allow(self, ctx: commands.Context):
