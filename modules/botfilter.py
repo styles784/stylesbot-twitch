@@ -111,13 +111,13 @@ class BotFilter(commands.Cog):
     async def mass_ban(self, ctx: commands.Context):
         if not ctx.author.is_mod:
             return
-        if ctx.channel.name not in configuration["OPTIONS"]["enabled"]:
-            return
-        names = ctx.message.content.split(" ")[1:]
-        for channel in self.bot.connected_channels:
-            for name in names:
-                logging.info(f"Banning {name} in {channel.name}")
-                await channel.send(f"/ban {name} another bot")
+        # if ctx.channel.name not in configuration["OPTIONS"]["enabled"]:
+        #     return
+        name: str = ctx.message.content.split(" ")[1]
+        msg: str =  " ".join(ctx.message.content.split(" ")[2:])
+        for channel in [c for c in self.bot.connected_channels if ctx.channel.name in configuration["OPTIONS"]["enabled"]]:
+            logging.info(f"Banning {name} in {channel.name}")
+            await channel.send(f"/ban {name} {msg}")
 
     @commands.command()
     async def numbots(self, ctx: commands.Context):
