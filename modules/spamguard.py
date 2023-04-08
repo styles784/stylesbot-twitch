@@ -21,26 +21,22 @@ class SpamGuard(commands.Cog):
         if msg.echo:
             return
         p: re.Pattern[str] = re.compile(
-            "\sbits?[,\s]?|view(?>er)?s?|follow(?>er)?s?|primes?|sub(?>scriber)?s?"
-        )
-        c: re.Pattern[str] = re.compile(
-            "cuti\s?\.\s?cc"
+            "view(?>er)?[sz]|follow(?>er)?[sz]|prime[sz]|sub(?>scriber)?[sz]"
         )
         m: list = p.findall(msg.content)
-        n: list = c.findall(msg.content)
-
-        if len(m) < 3 and len(n) < 1:
-            return
-
-        logging.debug(f"MATCH: {m} {n}")
-        logging.warn(
-            f"Deleting possible spam <{msg.author.display_name}> \
-            ({msg.channel.name}): {msg.content}"
-        )
-        await msg.channel.send(f"/delete {msg.id}")
+        if len(m) >= 3:
+            logging.debug(f"MATCH: {m}")
+            logging.warn(
+                f"Deleting possible spam <{msg.author.display_name}>: {msg.content}"
+            )
+            # await msg.channel.send(f"/delete {msg.id}")
+            broadcaster = await msg.channel.user()
+            usr = self.bot.create_user(broadcaster.id, broadcaster.name)
+            await usr.delete_chat_messages(
+                configuration["SECRET"]["oauth"].split(":")[1], self.bot.user_id, msg.id
+            )
 
 
 def prepare(bot: commands.Bot):
     logging.debug("Preparing SpamGuard...")
     bot.add_cog(SpamGuard(bot))
-    
