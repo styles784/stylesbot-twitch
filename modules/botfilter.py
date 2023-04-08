@@ -19,19 +19,28 @@ class BotFilter(commands.Cog):
             configuration["OPTIONS"]["enabled"] = []
 
     @commands.Cog.event()
-    async def event_join(self, channel, user):
+    async def event_join(
+        self, channel: twitchio.Channel, user: twitchio.PartialChatter
+    ):
+        logging.debug(f"{user.name} joined {channel.name}")
+        logging.debug(f"Moderator ID {self.bot.user_id}")
         if channel.name not in configuration["OPTIONS"]["enabled"]:
             return
         logging.debug(f"{user.name} spotted in {channel.name}")
-        await self.check_user(user.name, channel)
-
-    @commands.Cog.event("event_channel_joined")
-    async def sweepclear(self, channel: twitchio.Channel):
-        url = "https://tmi.twitch.tv/group/user/{name}/chatters"
-        response = requests.get(url.format(name=channel.name))
-        chatters = json.loads(response.text)["chatters"]["viewers"]
-        for user in chatters:
-            await self.check_user(user, channel)
+        if self.check_user(user.name, channel):
+            broadcaster = await channel.user()
+            usr = await user.user()
+            logging.info(
+                f"Attempting to ban {usr.name} ({usr.id}) from {channel.name} using credentials from {self.bot.user_id}"
+            )
+            target = self.bot.create_user(usr.id, usr.name)
+            await broadcaster.ban_user(
+                configuration["SECRET"]["oauth"].split(":")[1],
+                self.bot.user_id,
+                target.id,
+                "suspected bot - please send an unban \
+                request if a mistake has been made",
+            )
 
     @routines.routine(hours=6)
     async def refresh_bots(self):
@@ -39,7 +48,6 @@ class BotFilter(commands.Cog):
         logging.debug("Grabbing bot list...")
         self.botlist.update()
         logging.info(f"Refreshed list | {self.botlist.count()} known bots")
-        await self.check_all()
 
     @commands.command()
     async def enable(self, ctx: commands.Context):
@@ -114,10 +122,25 @@ class BotFilter(commands.Cog):
         # if ctx.channel.name not in configuration["OPTIONS"]["enabled"]:
         #     return
         name: str = ctx.message.content.split(" ")[1]
-        msg: str =  " ".join(ctx.message.content.split(" ")[2:])
-        for channel in [c for c in self.bot.connected_channels if ctx.channel.name in configuration["OPTIONS"]["enabled"]]:
-            logging.info(f"Banning {name} in {channel.name}")
-            await channel.send(f"/ban {name} {msg}")
+        msg: str = " ".join(ctx.message.content.split(" ")[2:])
+        for channel in [
+            c
+            for c in self.bot.connected_channels
+            if ctx.channel.name in configuration["OPTIONS"]["enabled"]
+        ]:
+            logging.info(f"Mass Banning {name} (channel: {channel.name})")
+            broadcaster = await channel.user()
+            usr: twitchio.PartialUser = ctx.get_user(name)
+            logging.info(
+                f"Attempting to ban {usr.name} ({usr.id}) from {channel.name} using credentials from {self.bot.user_id}"
+            )
+            target = self.bot.create_user(usr.id, usr.name)
+            await broadcaster.ban_user(
+                configuration["SECRET"]["oauth"].split(":")[1],
+                self.bot.user_id,
+                target.id,
+                msg,
+            )
 
     @commands.command()
     async def numbots(self, ctx: commands.Context):
@@ -135,34 +158,22 @@ class BotFilter(commands.Cog):
         else:
             await ctx.reply(f"{name} is not on my list")
 
-    async def check_user(self, user: str, channel: twitchio.Channel):
+    def check_user(self, user: str, channel: twitchio.Channel):
         if channel.name not in configuration["OPTIONS"]["enabled"]:
-            return
+            return False
         hval = f"{user}{channel.name}"
         if hval not in self.seen:
             logging.debug(f"{user} spotted in {channel.name}")
             if user in self.botlist.ToList():
                 logging.debug(f"POSSIBLE BOT DETECTED in {channel.name}: {user}")
                 logging.info(
-                    f"Banning suspected bot | user: {user} | channel: {channel.name}"
+                    f"Identified suspected bot | user: {user} | channel: {channel.name}"
                 )
-                await channel.send(
-                    f"/ban {user} suspected bot - please send an unban \
-                        request if a mistake has been made"
-                )
+                return True
             else:
                 logging.debug(f"Saw {user} for the first time")
                 self.seen.append(hval)
-
-    async def check_all(self):
-        url = "https://tmi.twitch.tv/group/user/{name}/chatters"
-        for channel in self.bot.connected_channels:
-            if channel is not None:
-                logging.debug(f"Checking channel {channel.name}")
-                response = requests.get(url.format(name=channel.name))
-                chatters = json.loads(response.text)["chatters"]["viewers"]
-                for user in chatters:
-                    await self.check_user(user, channel)
+        return False
 
 
 def prepare(bot: commands.Bot):
