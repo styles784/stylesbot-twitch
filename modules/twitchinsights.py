@@ -7,7 +7,7 @@ class BotList(object):
         self.channelMinimum = 150
         self.daysMinimum = 30
         # self.lastOnline = time.time() - (self.daysMinimum * 24 * 60 * 60)
-        self.bots = []
+        self._bots = []
 
         with (open("whitelist.json") as file):
             self.whitelist = json.load(file)
@@ -30,11 +30,11 @@ class BotList(object):
 
         data = json.loads(text)
 
-        return self.filterList(data["bots"])
+        return self.filter_list(data["bots"])
 
         # and int(b[2]) >= self.lastOnline
 
-    def filterList(self, bots: dict):
+    def filter_list(self, bots: dict):
         fbots = [
             b[0]
             for b in bots
@@ -46,6 +46,7 @@ class BotList(object):
         return fbots
 
     def allow(self, user: str):
+        user = user.lower()
         if user not in self.whitelist:
             self.whitelist.append(user)
         if user in self.blacklist:
@@ -57,6 +58,7 @@ class BotList(object):
         self.update()
 
     def disallow(self, user: str):
+        user = user.lower()
         if user not in self.blacklist:
             self.blacklist.append(user)
         if user in self.whitelist:
@@ -78,8 +80,14 @@ class BotList(object):
                 json.dump(self.whitelist, file, indent=4)
         self.update()
 
+    @property 
     def count(self):
         return len(self.bots)
 
-    def ToList(self):
-        return list(self.bots)
+    @property
+    def bots(self):
+        return list(self._bots)
+
+    @bots.setter
+    def bots(self, bots):
+        self._bots = bots

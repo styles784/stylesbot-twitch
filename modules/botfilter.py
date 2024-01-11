@@ -3,7 +3,7 @@ import logging
 import requests
 import twitchio
 from twitchio.ext import commands, routines
-from .twitchinsights import BotList
+from modules.twitchinsights import BotList
 from config import configuration
 
 logging.config.dictConfig(configuration["LOGGING"])
@@ -38,7 +38,7 @@ class BotFilter(commands.Cog):
                 configuration["SECRET"]["oauth"].split(":")[1],
                 self.bot.user_id,
                 target.id,
-                "suspected bot - please send an unban \
+                "[AUTOMOD] suspected bot - please send an unban \
                 request if a mistake has been made",
             )
 
@@ -47,7 +47,7 @@ class BotFilter(commands.Cog):
         logging.debug("Preparing to grab bot list from TwitchInsights.net...")
         logging.debug("Grabbing bot list...")
         self.botlist.update()
-        logging.info(f"Refreshed list | {self.botlist.count()} known bots")
+        logging.info(f"Refreshed list | {self.botlist.count} known bots")
 
     @commands.command()
     async def enable(self, ctx: commands.Context):
@@ -101,8 +101,8 @@ class BotFilter(commands.Cog):
         for user in users:
             self.botlist.allow(user)
             logging.info(f"Whitelisted {user} as requested by {ctx.author.name}")
-            for channel in self.bot.connected_channels:
-                await channel.send(f"/unban {user}")
+            # for channel in self.bot.connected_channels:
+            #     await channel.send(f"/unban {user}")
 
     @commands.command(aliases=["ban"])
     async def disallow(self, ctx: commands.Context):
@@ -130,30 +130,35 @@ class BotFilter(commands.Cog):
         ]:
             logging.info(f"Mass Banning {name} (channel: {channel.name})")
             broadcaster = await channel.user()
-            usr: twitchio.PartialUser = ctx.get_user(name)
-            logging.info(
-                f"Attempting to ban {usr.name} ({usr.id}) from {channel.name} using credentials from {self.bot.user_id}"
+            logging.info(f"In channel {channel.name}:")
+            users = await self.bot.fetch_users(
+                names = [name]
             )
-            target = self.bot.create_user(usr.id, usr.name)
+            usr: twitchio.PartialUser = users[0]
+            #ctx.get_user(name)
+            logging.info(
+                f"Attempting to ban {usr.name} ({usr.id})"
+            )
+            # target = self.bot.create_user(usr.id, usr.name)
             await broadcaster.ban_user(
                 configuration["SECRET"]["oauth"].split(":")[1],
                 self.bot.user_id,
-                target.id,
+                usr.id,
                 msg,
             )
 
     @commands.command()
     async def numbots(self, ctx: commands.Context):
         if ctx.author.is_mod or ctx.author.name == self.bot.nick:
-            size = self.botlist.count()
-            await ctx.reply(f"I know of {size} known bots")
+            # size = self.botlist.count()
+            await ctx.reply(f"I know of {self.botlist.count} bots")
 
     @commands.command()
     async def verify(self, ctx: commands.Context):
         if not (ctx.author.is_mod or ctx.author.name == self.bot.nick):
             return
         name = ctx.message.content.split(" ")[1]
-        if name.lower() in self.botlist.ToList():
+        if name.lower() in self.botlist.bots:
             await ctx.reply(f"{name} might be a bot")
         else:
             await ctx.reply(f"{name} is not on my list")
@@ -164,7 +169,7 @@ class BotFilter(commands.Cog):
         hval = f"{user}{channel.name}"
         if hval not in self.seen:
             logging.debug(f"{user} spotted in {channel.name}")
-            if user in self.botlist.ToList():
+            if user in self.botlist.bots:
                 logging.debug(f"POSSIBLE BOT DETECTED in {channel.name}: {user}")
                 logging.info(
                     f"Identified suspected bot | user: {user} | channel: {channel.name}"

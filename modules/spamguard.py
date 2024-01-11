@@ -21,13 +21,14 @@ class SpamGuard(commands.Cog):
         if msg.echo:
             return
         p: re.Pattern[str] = re.compile(
-            "view(?>er)?[sz]|follow(?>er)?[sz]|prime[sz]|sub(?>scriber)?[sz]"
+            "view(?>er)?[sz]|follow(?>er)?[sz]|prime[sz]|sub(?>scriber)?[sz]",
+            re.IGNORECASE
         )
         m: list = p.findall(msg.content)
         if len(m) >= 3:
             logging.debug(f"MATCH: {m}")
             logging.warn(
-                f"Deleting possible spam <{msg.author.display_name}>: {msg.content}"
+                f"[CHANNEL: {msg.channel.name}] Deleting possible spam from <{msg.author.display_name}>: {msg.content}"
             )
             # await msg.channel.send(f"/delete {msg.id}")
             broadcaster = await msg.channel.user()

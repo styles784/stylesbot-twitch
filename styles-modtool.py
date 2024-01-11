@@ -3,18 +3,27 @@ import logging.config
 from twitchio.ext import commands
 import config
 from config import configuration
+import asyncio
+import auth
 
 logging.config.dictConfig(configuration["LOGGING"])
 
 
 class StylesBot(commands.Bot):
     def __init__(self):
+        # logging.debug(f'Initial Token: {configuration["SECRET"]["oauth"]}')
+        # client_id = configuration["SECRET"]["client_id"]
+        # client_secret = configuration["SECRET"]["client_secret"]
+        # configuration['SECRET']['oauth'] = auth.get_auth(client_id, client_secret)
+        # logging.debug(f'New Token: {configuration["SECRET"]["oauth"]}')
         super().__init__(
             token=configuration["SECRET"]["oauth"],
+            client_id=configuration["SECRET"]["client_id"],
             prefix=configuration["OPTIONS"]["prefix"],
             client_secret=configuration["SECRET"]["client_secret"],
             initial_channels=configuration["OPTIONS"]["channels"],
         )
+
 
     async def event_ready(self):
         if self.nick not in [c.name for c in self.connected_channels if c is not None]:
@@ -26,22 +35,25 @@ class StylesBot(commands.Bot):
         if not ctx.author.is_mod:
             return
         modname = ctx.message.content.split(" ")[1]
-        logging.info(f"Attempting to load {modname}")
         self.load_module(modname)
+        logging.info(f"Loaded {modname}")
+        await ctx.reply(f"Loaded {modname}")
 
     @commands.command(name="unload")
     async def unload_cog(self, ctx: commands.Context):
         if ctx.author.is_mod:
             modname = ctx.message.content.split(" ")[1]
-            print(f"Attempting to unload {modname}")
             self.unload_module(modname)
+            logging.info(f"Unloaded {modname}")
+            await ctx.reply(f"Unloaded {modname}")
 
     @commands.command(name="reload")
     async def reload_cog(self, ctx: commands.Context):
         if ctx.author.is_mod:
             modname = ctx.message.content.split(" ")[1]
-            print(f"Attempting to reload {modname}")
             self.reload_module(modname)
+            logging.info(f"Reloaded {modname}")
+            await ctx.reply(f"Reloaded {modname}")
 
     @commands.command()
     async def join(self, ctx: commands.Context):
@@ -56,6 +68,7 @@ class StylesBot(commands.Bot):
         if ctx.author.is_mod:
             channels = ctx.message.content.split(" ")[1:]
             await self.part_channels(channels)
+            await ctx.reply(f"Left {channels}")
             logging.info(f"Leaving {channels}")
 
     @commands.command()
@@ -69,16 +82,17 @@ class StylesBot(commands.Bot):
     async def lsmod(self, ctx: commands.Context):
         if ctx.author.is_mod or ctx.author.name == self.nick:
             logging.debug(f"Modules: {[m for m in self.cogs.keys()]}")
-            await ctx.send(f"Modules: {self.cogs.keys()}")
+            await ctx.send(f"Modules: {[m for m in self.cogs.keys()]}")
 
     @commands.command()
     async def save(self, ctx: commands.Context) -> None:
         if not ctx.author.name == self.nick:
             return
 
-        channels = [c.name for c in self.connected_channels]
-        modules = list(self.cogs.keys())
+        channels = [c.name.lower() for c in self.connected_channels]
+        modules = [m.lower() for m in list(self.cogs.keys())]
         config.save(channels, modules)
+        await ctx.reply("Settings saved")
         logging.info("Settings saved to config.json")
 
     @commands.command()
@@ -87,8 +101,6 @@ class StylesBot(commands.Bot):
             logging.critical(f"ABORTING per {ctx.author.name}'s request!")
             await self.close()
             quit()
-        elif ctx.author.name == ctx.channel.name:
-            await self.part_channels(ctx.author.name)
 
 
 if __name__ == "__main__":
@@ -97,6 +109,7 @@ if __name__ == "__main__":
     for m in configuration["OPTIONS"]["modules"]:
         bot.load_module(f"modules.{m}")
     try:
+        print(bot._http.token)
         bot.run()
     except KeyboardInterrupt:
         pass
