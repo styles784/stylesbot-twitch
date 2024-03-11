@@ -20,14 +20,8 @@ class SpamGuard(commands.Cog):
         """
         if msg.echo:
             return
-        p: re.Pattern[str] = re.compile(
-            "view(?>er)?[sz]|follow(?>er)?[sz]|prime[sz]|sub(?>scriber)?[sz]",
-            re.IGNORECASE
-        )
-        m: list = p.findall(msg.content)
-        if len(m) >= 3:
-            logging.debug(f"MATCH: {m}")
-            logging.warn(
+        if isSpam(msg.content):
+            logging.warning(
                 f"[CHANNEL: {msg.channel.name}] Deleting possible spam from <{msg.author.display_name}>: {msg.content}"
             )
             # await msg.channel.send(f"/delete {msg.id}")
@@ -36,6 +30,20 @@ class SpamGuard(commands.Cog):
             await usr.delete_chat_messages(
                 configuration["SECRET"]["oauth"].split(":")[1], self.bot.user_id, msg.id
             )
+
+def isSpam(msg):
+    patterns = [
+        (r'view(?>er)?[sz]\W|follow(?>er)?[sz]\W|prime[sz]\W|sub(?>scriber)?[sz]\W', 3),
+        (r'о', 1),
+        (r'е', 1)
+    ]
+
+    for pat, thresh in patterns:
+        matches = re.findall(pat, msg)
+        if len(matches) >= thresh:
+            return True
+
+    return False
 
 
 def prepare(bot: commands.Bot):
